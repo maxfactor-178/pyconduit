@@ -1,0 +1,17 @@
+# Development ejabberd ONLY. PyConduit itself runs on the host (see README).
+services:
+  ejabberd:
+    image: ghcr.io/processone/ejabberd:latest
+    container_name: pyconduit-ejabberd
+    ports:
+      - "5222:5222"   # client c2s (STARTTLS)
+      - "5280:5280"   # admin / http
+    environment:
+      # Virtual host used by the sample users.json (alice@example.com, bob@example.com).
+      - EJABBERD_MACRO_HOST=example.com
+    volumes:
+      - ./ejabberd.yml:/opt/ejabberd/conf/ejabberd.yml:ro
+      - ejabberd-data:/opt/ejabberd/database
+
+volumes:
+  ejabberd-data:

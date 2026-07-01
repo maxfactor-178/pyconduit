@@ -1,0 +1,196 @@
+:root {
+  --bg: #313338;
+  --bg-alt: #2b2d31;
+  --bg-dark: #1e1f22;
+  --bg-hover: #35373c;
+  --bg-active: #404249;
+  --text: #dbdee1;
+  --text-muted: #949ba4;
+  --accent: #5865f2;
+  --accent-hover: #4752c4;
+  --green: #23a55a;
+  --yellow: #f0b232;
+  --red: #f23f43;
+  --grey: #80848e;
+  --danger-bg: #442726;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  font-family: "gg sans", "Segoe UI", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+}
+button { font-family: inherit; cursor: pointer; }
+.hidden { display: none !important; }
+
+#app { display: flex; height: 100vh; }
+
+/* Sidebar */
+#sidebar {
+  width: 260px;
+  background: var(--bg-alt);
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--bg-dark);
+}
+#brand {
+  padding: 16px;
+  font-weight: 700;
+  font-size: 17px;
+  border-bottom: 1px solid var(--bg-dark);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.2);
+}
+.presence-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+}
+.presence-row select {
+  flex: 1;
+  background: var(--bg-dark);
+  color: var(--text);
+  border: none;
+  border-radius: 4px;
+  padding: 6px;
+}
+#settings-btn {
+  background: none; border: none; color: var(--text-muted); font-size: 18px;
+}
+#settings-btn:hover { color: var(--text); }
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.section-head button {
+  background: none; border: none; color: var(--text-muted); font-size: 16px;
+}
+.section-head button:hover { color: var(--text); }
+
+.list { list-style: none; margin: 0; padding: 0 8px; overflow-y: auto; }
+.list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+.list li:hover { background: var(--bg-hover); color: var(--text); }
+.list li.active { background: var(--bg-active); color: #fff; }
+.list li .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.presence-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--grey); flex: none;
+}
+.presence-dot.online { background: var(--green); }
+.presence-dot.away, .presence-dot.xa { background: var(--yellow); }
+.presence-dot.dnd { background: var(--red); }
+.presence-dot.offline { background: var(--grey); }
+
+.badge {
+  background: var(--red); color: #fff; font-size: 11px; font-weight: 700;
+  border-radius: 10px; padding: 1px 7px; min-width: 18px; text-align: center;
+}
+.link-btn {
+  background: none; border: none; color: var(--text-muted);
+  padding: 6px 16px; text-align: left; font-size: 13px;
+}
+.link-btn:hover { color: var(--text); }
+
+/* Main */
+#main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+#convo-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--bg-dark);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.2);
+  display: flex; align-items: baseline; gap: 10px;
+}
+#convo-title { font-weight: 700; }
+#convo-sub { color: var(--text-muted); font-size: 13px; }
+
+#messages-wrap { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+#messages { display: flex; flex-direction: column; padding: 12px 18px; gap: 2px; }
+#load-older {
+  align-self: center; margin: 12px auto 0;
+  background: var(--bg-active); color: var(--text); border: none;
+  border-radius: 4px; padding: 6px 14px; font-size: 13px;
+}
+
+.msg { padding: 3px 0; line-height: 1.4; }
+.msg .meta { color: var(--text-muted); font-size: 12px; margin-right: 8px; }
+.msg .author { font-weight: 600; color: #fff; margin-right: 8px; }
+.msg.outgoing .author { color: var(--accent); }
+.msg .body { white-space: pre-wrap; word-wrap: break-word; }
+
+.notice { text-align: center; color: var(--text-muted); font-size: 12px; padding: 4px; }
+.warning {
+  background: var(--danger-bg); color: #f5c2c2; border-radius: 4px;
+  padding: 6px 10px; margin: 4px 0; font-size: 13px;
+}
+
+#occupants {
+  padding: 8px 18px; border-top: 1px solid var(--bg-dark);
+  color: var(--text-muted); font-size: 13px; max-height: 90px; overflow-y: auto;
+}
+
+#composer { display: flex; gap: 8px; padding: 14px 18px; }
+#composer-input {
+  flex: 1; background: var(--bg-dark); border: none; border-radius: 8px;
+  padding: 11px 14px; color: var(--text); font-size: 15px;
+}
+#composer-input:focus { outline: none; }
+#send-btn {
+  background: var(--accent); color: #fff; border: none; border-radius: 8px;
+  padding: 0 18px; font-weight: 600;
+}
+#send-btn:hover { background: var(--accent-hover); }
+#send-btn:disabled { background: var(--bg-active); color: var(--text-muted); }
+
+#subscription-banner {
+  margin: 8px 12px; padding: 10px; background: var(--bg-dark);
+  border-radius: 6px; font-size: 13px;
+}
+#subscription-banner .sub-actions { margin-top: 8px; display: flex; gap: 8px; }
+#subscription-banner button {
+  border: none; border-radius: 4px; padding: 5px 12px; font-size: 13px; color: #fff;
+}
+.btn-accept { background: var(--green); }
+.btn-decline { background: var(--red); }
+
+/* Modals */
+.modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center; z-index: 20;
+}
+.modal-card {
+  background: var(--bg); border-radius: 8px; padding: 22px; width: 420px;
+  max-width: 90vw; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+.modal-card h3 { margin: 0 0 16px; }
+.modal-actions { margin-top: 18px; text-align: right; }
+.modal-actions button, .modal .row button, #discover-go {
+  background: var(--accent); color: #fff; border: none; border-radius: 4px;
+  padding: 8px 16px; font-weight: 600;
+}
+.switch-row { display: flex; align-items: center; gap: 10px; }
+.row { display: flex; gap: 8px; }
+.modal input[type="text"] {
+  flex: 1; background: var(--bg-dark); border: none; border-radius: 4px;
+  padding: 9px 12px; color: var(--text);
+}
+#discover-results { max-height: 240px; margin-top: 12px; padding: 0; }

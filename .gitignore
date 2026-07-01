@@ -1,0 +1,25 @@
+# Secrets — never commit real credentials
+credentials.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+
+# Logs
+*.log
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+.claude/
+
+# Docker volumes
+ejabberd-data/

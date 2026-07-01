@@ -1,0 +1,94 @@
+### Minimal ejabberd config for PyConduit development.
+### Enables MAM (message archive, for history) and MUC (group chat). Not for production.
+
+hosts:
+  - example.com
+
+loglevel: info
+
+## No certfiles listed: ejabberd auto-generates a self-signed cert for STARTTLS.
+## PyConduit dev config sets verify_certs=false to accept it.
+
+listen:
+  -
+    port: 5222
+    ip: "::"
+    module: ejabberd_c2s
+    max_stanza_size: 262144
+    starttls: true
+    starttls_required: false
+  -
+    port: 5280
+    ip: "::"
+    module: ejabberd_http
+    request_handlers:
+      /admin: ejabberd_web_admin
+      /api: mod_http_api
+
+## Dev auth: in-memory/internal user database. Register with `ejabberdctl register`.
+auth_method: internal
+
+acl:
+  admin:
+    user:
+      - "admin@example.com"
+  local:
+    user_regexp: ""
+
+access_rules:
+  local:
+    allow: local
+  c2s:
+    deny: blocked
+    allow: all
+  announce:
+    allow: admin
+  configure:
+    allow: admin
+
+api_permissions:
+  "console commands":
+    from:
+      - ejabberd_ctl
+    who: all
+    what: "*"
+
+shaper:
+  normal: 1000
+  fast: 50000
+
+shaper_rules:
+  max_user_sessions: 10
+  c2s_shaper:
+    none: admin
+    normal: all
+
+modules:
+  mod_adhoc: {}
+  mod_caps: {}
+  mod_carboncopy: {}
+  mod_disco: {}
+  mod_last: {}
+  mod_mam:
+    default: always          # archive all 1:1 and MUC messages (history + load older)
+    request_activates_archiving: false
+  mod_muc:
+    host: "conference.@HOST@"
+    access:
+      - allow
+    access_admin:
+      - allow: admin
+    access_create: all
+    access_persistent: all
+    default_room_options:
+      mam: true
+  mod_muc_admin: {}
+  mod_offline:
+    access_max_user_messages: 5000
+  mod_ping: {}
+  mod_privacy: {}
+  mod_private: {}
+  mod_roster: {}
+  mod_stream_mgmt: {}
+  mod_vcard: {}
+  mod_version: {}

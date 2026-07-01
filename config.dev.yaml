@@ -1,0 +1,40 @@
+# PyConduit development configuration.
+# Any value can be overridden via env vars, e.g. PYCONDUIT_SERVER__PORT=9000.
+
+server:
+  host: 127.0.0.1
+  port: 8080
+  brand_title: "PyConduit"
+
+auth:
+  mode: dev                          # dev: accept ?user=alice ; proxy: trust header
+  header: X-Remote-User
+  dev_default_user: alice
+  users_file: users.json
+  credentials_file: credentials.json
+
+xmpp:
+  host: localhost
+  port: 5222
+  tls: false
+  verify_certs: false
+  idle_timeout_seconds: 300
+  reconnect:
+    initial_seconds: 1
+    max_seconds: 60
+    factor: 2.0
+
+muc:
+  discovery_servers:
+    - conference.example.com
+
+history:
+  page_size: 50
+
+ui:
+  sound_enabled_default: true
+
+audit:
+  destinations:
+    - type: stdout
+      format: text
