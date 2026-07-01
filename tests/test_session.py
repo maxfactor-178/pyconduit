@@ -5,8 +5,6 @@ messages to every tab, incoming broadcast, and delivery-failure surfacing — wh
 is exactly what the abstract xmpp.interface was designed to make testable.
 """
 
-import pytest
-
 from pyconduit.audit import AuditLog
 from pyconduit.config import load_config
 from pyconduit.protocol import parse_client_message
@@ -141,9 +139,8 @@ async def test_delivery_failure_surfaces_error():
     assert errors and errors[0]["conversation"] == "bob@example.com"
 
 
-async def test_idle_close_after_last_tab(monkeypatch):
+async def test_idle_close_after_last_tab():
     mgr = make_manager()
-    cfg_account = None
     f1, s1 = collector()
     sub1 = Subscriber(username="alice", ip="1.1.1.1", send=s1)
     account = await mgr.attach(jid="alice@example.com", password="pw", sub=sub1)

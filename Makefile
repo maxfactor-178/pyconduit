@@ -7,7 +7,7 @@ VENV ?= .venv
 BIN := $(VENV)/bin
 CONFIG ?= config.dev.yaml
 
-.PHONY: help venv install run test lint fmt ejabberd-up ejabberd-down register clean
+.PHONY: help venv install run test lint fmt certs ejabberd-up ejabberd-down register clean
 
 help:
 	@echo "Targets:"
@@ -39,7 +39,15 @@ lint:
 fmt:
 	$(BIN)/ruff format src tests
 
-ejabberd-up:
+# Generate a self-signed dev certificate for ejabberd's STARTTLS.
+certs:
+	mkdir -p certs
+	MSYS_NO_PATHCONV=1 openssl req -x509 -newkey rsa:2048 -nodes -days 3650 \
+	  -keyout certs/key.pem -out certs/cert.pem -subj "/CN=example.com" \
+	  -addext "subjectAltName=DNS:example.com,DNS:conference.example.com"
+	cat certs/cert.pem certs/key.pem > certs/server.pem
+
+ejabberd-up: certs
 	docker compose up -d
 
 ejabberd-down:

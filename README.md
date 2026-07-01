@@ -137,9 +137,15 @@ need no auth.
 ## Testing & linting
 
 ```bash
-make test      # pytest — pure logic: config, protocol, auth mapping
+make test      # pytest — pure logic (config, protocol, auth, session)
 make lint      # ruff
 ```
+
+The suite also includes **live XMPP integration tests** (`tests/test_live_xmpp.py`)
+that exercise the real slixmpp round-trips — connect/auth, 1:1 messaging, MAM
+history, and MUC. They **skip automatically** unless ejabberd is reachable on
+`localhost:5222`, so `make test` stays green offline. To run them, start ejabberd
+and register the accounts first (`make ejabberd-up && make register`).
 
 ## Health endpoints
 

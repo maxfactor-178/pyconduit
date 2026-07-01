@@ -80,6 +80,11 @@ class SlixmppClient(XmppClient):
             xmpp.ssl_context.check_hostname = False
             xmpp.ssl_context.verify_mode = ssl.CERT_NONE
 
+        # In a plaintext dev setup (no TLS) slixmpp would refuse PLAIN auth over an
+        # unencrypted stream; allow it explicitly. Never enabled when TLS is on.
+        if not config.tls:
+            xmpp["feature_mechanisms"].unencrypted_plain = True
+
         xmpp.add_event_handler("session_start", self._on_session_start)
         xmpp.add_event_handler("disconnected", self._on_disconnected)
         xmpp.add_event_handler("failed_auth", self._on_failed_auth)
@@ -104,11 +109,7 @@ class SlixmppClient(XmppClient):
     async def connect(self) -> None:
         self._session_ready.clear()
         self._session_failed = self._loop.create_future()
-        self._xmpp.connect(
-            address=(self._cfg.host, self._cfg.port),
-            force_starttls=self._cfg.tls,
-            disable_starttls=not self._cfg.tls,
-        )
+        self._xmpp.connect(host=self._cfg.host, port=self._cfg.port)
         # Wait until either the session starts or auth/connection fails.
         ready = asyncio.ensure_future(self._session_ready.wait())
         done, pending = await asyncio.wait(
@@ -256,35 +257,40 @@ class SlixmppClient(XmppClient):
     async def fetch_history(
         self, peer_jid: str, before: str | None, limit: int
     ) -> tuple[list[ArchivedMessage], bool]:
-        rsm = {"max": limit}
-        if before:
-            rsm["before"] = before
-        else:
-            rsm["before"] = True  # most recent page
-        collected: list[ArchivedMessage] = []
+        # Fetch one RSM page ending before ``before`` (an archive id) — i.e. paging
+        # backwards. An empty <before/> requests the newest page; note we must pass
+        # "" not True, since slixmpp stringifies the value (str(True) -> "True",
+        # which the server treats as a bogus item id and returns nothing).
+        rsm = {"max": limit, "before": before if before else ""}
         try:
-            results = self._xmpp["xep_0313"].retrieve(
-                with_jid=JID(peer_jid).bare, iterator=True, rsm=rsm
+            iq = await self._xmpp["xep_0313"].retrieve(
+                with_jid=JID(peer_jid).bare, rsm=rsm
             )
-            async for msg in results:
-                result = msg["mam_result"]
-                fwd = result["forwarded"]
-                inner = fwd["stanza"]
-                collected.append(
-                    ArchivedMessage(
-                        from_jid=JID(inner["from"]).bare,
-                        to_jid=JID(inner["to"]).bare,
-                        body=inner["body"],
-                        msg_id=result["id"] or self._xmpp.new_id(),
-                        timestamp=_stamp_to_iso(fwd["delay"]["stamp"]),
-                    )
-                )
-        except (IqError, IqTimeout, KeyError):
+        except (IqError, IqTimeout):
             return [], True
-        # MAM returns oldest-first within a page already; completeness heuristic.
-        messages = [m for m in collected if m.body]
-        complete = len(collected) < limit
-        return messages, complete
+
+        collected: list[ArchivedMessage] = []
+        # The server returns matching messages as a list of <message> stanzas,
+        # each wrapping a MAM <result> with the forwarded original.
+        for msg in iq["mam"]["results"]:
+            result = msg["mam_result"]
+            fwd = result["forwarded"]
+            inner = fwd["stanza"]
+            body = inner["body"]
+            if not body:
+                continue
+            collected.append(
+                ArchivedMessage(
+                    from_jid=JID(inner["from"]).bare,
+                    to_jid=JID(inner["to"]).bare,
+                    body=body,
+                    msg_id=result["id"] or self._xmpp.new_id(),
+                    timestamp=_stamp_to_iso(fwd["delay"]["stamp"]),
+                )
+            )
+        # RSM <fin complete='true'> means no older messages remain beyond this page.
+        complete = bool(iq["mam_fin"]["complete"]) or len(collected) < limit
+        return collected, complete
 
     # --- MUC -------------------------------------------------------------------
 

@@ -11,6 +11,7 @@ services:
       - EJABBERD_MACRO_HOST=example.com
     volumes:
       - ./ejabberd.yml:/opt/ejabberd/conf/ejabberd.yml:ro
+      - ./certs/server.pem:/opt/ejabberd/conf/server.pem:ro
       - ejabberd-data:/opt/ejabberd/database
 
 volumes:

@@ -1,5 +1,6 @@
-# Secrets — never commit real credentials
+# Secrets — never commit real credentials or private keys
 credentials.json
+certs/
 
 # Python
 __pycache__/
