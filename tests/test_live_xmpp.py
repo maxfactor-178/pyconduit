@@ -111,3 +111,36 @@ async def test_muc_join_send_occupants(clients):
     assert got is not None
     occ = ac.of(ifc.MucOccupants)
     assert occ and any(o["nick"] in ("alice", "bob") for o in occ[-1].occupants)
+
+
+async def test_presence_online_then_change(clients):
+    alice, _ac, _bob, bc = clients
+    # Bob learns Alice is online, then follows her status change.
+    assert await _wait_for(
+        bc, ifc.PresenceUpdate,
+        pred=lambda e: e.jid == "alice@example.com" and e.show == "online",
+    )
+    await alice.set_presence("dnd")
+    assert await _wait_for(
+        bc, ifc.PresenceUpdate,
+        pred=lambda e: e.jid == "alice@example.com" and e.show == "dnd",
+    )
+
+
+async def test_presence_stays_online_while_any_resource_present(clients):
+    alice, _ac, _bob, bc = clients
+    # A second Alice "device" (e.g. a standalone XMPP client) connects.
+    alice2 = SlixmppClient("alice@example.com", "alicepass", CFG, Collector().on_event)
+    await alice2.connect()
+    await alice2.set_presence("online")
+    await asyncio.sleep(1.0)
+    try:
+        bc.events.clear()
+        # One resource leaves; Alice must NOT be reported offline while alice2 stays.
+        await alice.disconnect()
+        await asyncio.sleep(2.0)
+        ups = [e for e in bc.of(ifc.PresenceUpdate) if e.jid == "alice@example.com"]
+        assert not ups or ups[-1].show != "offline"
+    finally:
+        await alice2.disconnect()
+        await asyncio.sleep(0.2)

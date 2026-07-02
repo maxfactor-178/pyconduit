@@ -46,6 +46,9 @@ _SHOW_MAP: dict[str, Show] = {
     "dnd": "dnd",
 }
 
+# When a contact is logged in from several devices, pick the "most available" one.
+_SHOW_PRIORITY = {"online": 0, "away": 1, "xa": 2, "dnd": 3}
+
 
 def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
@@ -66,6 +69,9 @@ class SlixmppClient(XmppClient):
         self._cfg = config
         self._connected = False
         self._joined_rooms: dict[str, str] = {}  # room bare JID -> our nick
+        # Presence tracked per full JID: {bare: {resource: show}}. A contact is
+        # online if ANY of their resources is; only the last one leaving = offline.
+        self._presence_resources: dict[str, dict[str, Show]] = {}
         self._loop = asyncio.get_event_loop()
 
         xmpp = slixmpp.ClientXMPP(jid, password)
@@ -201,13 +207,21 @@ class SlixmppClient(XmppClient):
         frm = JID(pres["from"])
         if frm.bare == self._bare or frm.bare in self._joined_rooms:
             return
+
+        resources = self._presence_resources.setdefault(frm.bare, {})
         if pres["type"] == "unavailable":
-            await self._on_event(PresenceUpdate(jid=frm.bare, show="offline"))
-            return
-        show = _SHOW_MAP.get(pres["show"], "online")
-        await self._on_event(
-            PresenceUpdate(jid=frm.bare, show=show, status=pres["status"] or None)
-        )
+            resources.pop(frm.resource, None)
+        else:
+            resources[frm.resource] = _SHOW_MAP.get(pres["show"], "online")
+
+        # Aggregate across the contact's devices: online if any resource is, using
+        # the most-available show; offline only once every resource has left.
+        if resources:
+            show = min(resources.values(), key=lambda s: _SHOW_PRIORITY.get(s, 0))
+            status = pres["status"] or None
+        else:
+            show, status = "offline", None
+        await self._on_event(PresenceUpdate(jid=frm.bare, show=show, status=status))
 
     # --- roster / subscriptions ------------------------------------------------
 
