@@ -195,9 +195,11 @@ class SlixmppClient(XmppClient):
         self._xmpp.send_presence(pshow=slix_show or None, pstatus=status)
 
     async def _on_presence(self, pres) -> None:
-        # Ignore our own presence and MUC presence (handled separately).
+        # Ignore our own presence and MUC room presence: occupant presences share
+        # the presence_available/unavailable events, but their bare JID is the room
+        # (handled by _on_groupchat_presence) — never a 1:1 roster contact.
         frm = JID(pres["from"])
-        if frm.bare == self._bare:
+        if frm.bare == self._bare or frm.bare in self._joined_rooms:
             return
         if pres["type"] == "unavailable":
             await self._on_event(PresenceUpdate(jid=frm.bare, show="offline"))

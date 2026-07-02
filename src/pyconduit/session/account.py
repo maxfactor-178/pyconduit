@@ -57,6 +57,7 @@ class Account:
         self._roster: list[dict] = []
         self._presence: dict[str, dict] = {}
         self._joined_rooms: dict[str, str] = {}  # room -> nick
+        self._muc_occupants: dict[str, list[dict]] = {}  # room -> occupants
 
         self._idle_task: asyncio.Task | None = None
         self._reconnect_task: asyncio.Task | None = None
@@ -206,6 +207,7 @@ class Account:
             )
 
         elif isinstance(event, ifc.MucOccupants):
+            self._muc_occupants[event.room] = event.occupants
             await self._broadcast(
                 protocol.server_muc_occupants(room=event.room, occupants=event.occupants)
             )
@@ -307,7 +309,10 @@ class Account:
         msg.require("room")
         room = msg.data["room"]
         self._joined_rooms.pop(room, None)
+        self._muc_occupants.pop(room, None)
         await self._client.leave_room(room)
+        # Tell every tab to drop the room (multi-tab sync).
+        await self._broadcast(protocol.server_muc_left(room=room))
 
     async def _cmd_send_muc(self, sub: Subscriber, msg: protocol.ClientMessage) -> None:
         msg.require("room", "body")
@@ -345,6 +350,9 @@ class Account:
             await sub.send(frame)
         for room, nick in self._joined_rooms.items():
             await sub.send(protocol.server_muc_joined(room=room, nick=nick))
+            occupants = self._muc_occupants.get(room)
+            if occupants:
+                await sub.send(protocol.server_muc_occupants(room=room, occupants=occupants))
 
     async def _broadcast(self, frame: dict) -> None:
         for sub in list(self._subscribers):

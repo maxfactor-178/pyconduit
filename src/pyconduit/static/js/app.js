@@ -71,7 +71,7 @@
     return r && r.show ? r.show : "offline";
   }
 
-  function liFor(convoId, label, dotClass) {
+  function liFor(convoId, label, dotClass, action) {
     const c = state.convos.get(convoId);
     const li = document.createElement("li");
     if (convoId === state.active) li.classList.add("active");
@@ -93,6 +93,14 @@
       b.textContent = c.unread;
       li.appendChild(b);
     }
+    if (action) {
+      const btn = document.createElement("button");
+      btn.className = "row-action";
+      btn.textContent = action.label;
+      btn.title = action.title;
+      btn.onclick = (e) => { e.stopPropagation(); action.onClick(); };
+      li.appendChild(btn);
+    }
     return li;
   }
 
@@ -106,8 +114,8 @@
     [...jids].sort().forEach((jid) => {
       const r = state.roster.get(jid);
       const label = (r && r.name) || jid;
-      const li = liFor(jid, label, presenceOf(jid));
-      li.oncontextmenu = (e) => { e.preventDefault(); removeContact(jid); };
+      const li = liFor(jid, label, presenceOf(jid),
+        { label: "✕", title: "Remove contact", onClick: () => removeContact(jid) });
       ul.appendChild(li);
     });
   }
@@ -117,24 +125,29 @@
     ul.innerHTML = "";
     for (const [id, c] of state.convos) {
       if (c.kind !== "muc") continue;
-      const li = liFor(id, c.name, null);
+      const li = liFor(id, c.name, null,
+        { label: "✕", title: "Leave room", onClick: () => leaveRoom(id) });
       ul.appendChild(li);
     }
   }
 
   function renderConvoHeader() {
     const c = state.convos.get(state.active);
+    const leaveBtn = $("#leave-room-btn");
     if (!c) {
       $("#convo-title").textContent = "Select a conversation";
       $("#convo-sub").textContent = "";
+      leaveBtn.classList.add("hidden");
       return;
     }
     $("#convo-title").textContent = c.name;
     if (c.kind === "chat") {
       const r = state.roster.get(c.id);
       $("#convo-sub").textContent = r && r.status ? r.status : presenceOf(c.id);
+      leaveBtn.classList.add("hidden");
     } else {
       $("#convo-sub").textContent = c.occupants.length + " occupants";
+      leaveBtn.classList.remove("hidden");
     }
   }
 
@@ -295,6 +308,13 @@
         break;
       }
 
+      case "muc_left": {
+        state.convos.delete(f.room);
+        if (state.active === f.room) state.active = null;
+        renderAll();
+        break;
+      }
+
       case "muc_message": {
         const c = getConvo(f.room, "muc");
         c.messages.push({
@@ -366,7 +386,7 @@
 
   // ---- User actions --------------------------------------------------------
   function addContact() {
-    const jid = prompt("Contact JID (e.g. bob@localhost):");
+    const jid = prompt("Contact JID (e.g. bob@example.com):");
     if (jid) { send({ type: "add_contact", jid: jid.trim() });
                getConvo(jid.trim(), "chat"); renderContacts(); }
   }
@@ -374,13 +394,17 @@
     if (confirm(`Remove ${jid}?`)) {
       send({ type: "remove_contact", jid });
       state.roster.delete(jid);
+      state.convos.delete(jid);
       if (state.active === jid) state.active = null;
       renderAll();
     }
   }
   function joinRoom() {
-    const room = prompt("Room address (e.g. general@conference.localhost):");
+    const room = prompt("Room address (e.g. general@conference.example.com):");
     if (room) send({ type: "join_room", room: room.trim() });
+  }
+  function leaveRoom(room) {
+    if (confirm(`Leave ${room.split("@")[0]}?`)) send({ type: "leave_room", room });
   }
 
   // ---- Discover modal ------------------------------------------------------
@@ -417,6 +441,10 @@
 
     $("#add-contact-btn").onclick = addContact;
     $("#join-room-btn").onclick = joinRoom;
+    $("#leave-room-btn").onclick = () => {
+      const c = state.convos.get(state.active);
+      if (c && c.kind === "muc") leaveRoom(c.id);
+    };
     $("#discover-btn").onclick = () => $("#discover-modal").classList.remove("hidden");
     $("#discover-close").onclick = () => $("#discover-modal").classList.add("hidden");
     $("#discover-go").onclick = () => {

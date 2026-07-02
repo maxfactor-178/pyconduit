@@ -93,6 +93,14 @@ button { font-family: inherit; cursor: pointer; }
 .list li.active { background: var(--bg-active); color: #fff; }
 .list li .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* Per-row action (remove contact / leave room) — revealed on hover. */
+.row-action {
+  background: none; border: none; color: var(--text-muted);
+  font-size: 13px; padding: 0 2px; visibility: hidden; flex: none;
+}
+.list li:hover .row-action { visibility: visible; }
+.row-action:hover { color: var(--red); }
+
 .presence-dot {
   width: 10px; height: 10px; border-radius: 50%;
   background: var(--grey); flex: none;
@@ -122,6 +130,11 @@ button { font-family: inherit; cursor: pointer; }
 }
 #convo-title { font-weight: 700; }
 #convo-sub { color: var(--text-muted); font-size: 13px; }
+.header-btn {
+  margin-left: auto; background: var(--bg-active); color: var(--text);
+  border: none; border-radius: 4px; padding: 5px 12px; font-size: 13px;
+}
+.header-btn:hover { background: var(--red); color: #fff; }
 
 #messages-wrap { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
 #messages { display: flex; flex-direction: column; padding: 12px 18px; gap: 2px; }

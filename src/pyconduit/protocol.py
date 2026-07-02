@@ -130,6 +130,10 @@ def server_muc_joined(*, room: str, nick: str, subject: str | None = None) -> di
     return {"type": "muc_joined", "room": room, "nick": nick, "subject": subject}
 
 
+def server_muc_left(*, room: str) -> dict:
+    return {"type": "muc_left", "room": room}
+
+
 def server_muc_message(
     *, room: str, nick: str, body: str, msg_id: str, timestamp: str, is_self: bool
 ) -> dict:
