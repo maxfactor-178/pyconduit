@@ -70,13 +70,21 @@ def parse_client_message(raw: Any) -> ClientMessage:
 # keeps the wire shape consistent and greppable.
 
 
-def server_ready(*, jid: str, username: str, brand_title: str, sound_default: bool) -> dict:
+def server_ready(
+    *,
+    jid: str,
+    username: str,
+    brand_title: str,
+    sound_default: bool,
+    muc_servers: list[str],
+) -> dict:
     return {
         "type": "ready",
         "jid": jid,
         "username": username,
         "brand_title": brand_title,
         "sound_enabled_default": sound_default,
+        "muc_servers": muc_servers,
     }
 
 

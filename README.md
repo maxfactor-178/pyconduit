@@ -87,6 +87,13 @@ docker exec pyconduit-ejabberd ejabberdctl register bob   example.com bobpass
 These match the sample `users.json` / `credentials.json` (`alice@example.com`,
 `bob@example.com`).
 
+Optionally create a few discoverable group-chat rooms so *Discover rooms…* has
+content out of the box:
+
+```bash
+make rooms   # general, random, support, dev-team on conference.example.com
+```
+
 ### 3. Install and run the app
 
 ```bash

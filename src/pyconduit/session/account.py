@@ -342,6 +342,7 @@ class Account:
                 username=sub.username,
                 brand_title=self._cfg.server.brand_title,
                 sound_default=self._cfg.ui.sound_enabled_default,
+                muc_servers=self._cfg.muc.discovery_servers,
             )
         )
         if self._roster:

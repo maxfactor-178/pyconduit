@@ -11,6 +11,7 @@
     username: null,
     brandTitle: "PyConduit",
     soundEnabled: true,
+    mucServers: [],         // configured MUC discovery domains (from 'ready')
     roster: new Map(),      // jid -> {name, subscription, show, status}
     convos: new Map(),      // id  -> {kind, id, name, messages, unread, complete, oldestId, occupants}
     active: null,           // active convo id
@@ -35,13 +36,13 @@
 
   function setActive(id) {
     state.active = id;
-    const c = state.convos.get(id);
-    if (c) {
-      c.unread = 0;
-      // Lazily load history the first time a 1:1 conversation is opened.
-      if (c.kind === "chat" && c.messages.length === 0 && !c.complete) {
-        send({ type: "load_history", jid: id, before: null });
-      }
+    // A roster contact may not have a conversation object yet (contacts are
+    // listed from the roster, not from open convos). Create it on first open.
+    const c = getConvo(id, "chat");
+    c.unread = 0;
+    // Lazily load history the first time a 1:1 conversation is opened.
+    if (c.kind === "chat" && c.messages.length === 0 && !c.complete) {
+      send({ type: "load_history", jid: id, before: null });
     }
     renderAll();
     focusComposer();
@@ -248,6 +249,7 @@
         state.username = f.username;
         state.brandTitle = f.brand_title || "PyConduit";
         state.soundEnabled = loadSoundPref(f.sound_enabled_default);
+        state.mucServers = f.muc_servers || [];
         $("#sound-toggle").checked = state.soundEnabled;
         renderAll();
         break;
@@ -387,8 +389,11 @@
   // ---- User actions --------------------------------------------------------
   function addContact() {
     const jid = prompt("Contact JID (e.g. bob@example.com):");
-    if (jid) { send({ type: "add_contact", jid: jid.trim() });
-               getConvo(jid.trim(), "chat"); renderContacts(); }
+    if (jid) {
+      const bare = jid.trim();
+      send({ type: "add_contact", jid: bare });
+      setActive(bare);  // open the conversation right away
+    }
   }
   function removeContact(jid) {
     if (confirm(`Remove ${jid}?`)) {
@@ -445,7 +450,16 @@
       const c = state.convos.get(state.active);
       if (c && c.kind === "muc") leaveRoom(c.id);
     };
-    $("#discover-btn").onclick = () => $("#discover-modal").classList.remove("hidden");
+    $("#discover-btn").onclick = () => {
+      // Default the discovery domain to the configured local MUC service and
+      // browse it immediately, so rooms show up without any typing.
+      const input = $("#discover-server");
+      if (!input.value.trim() && state.mucServers.length) {
+        input.value = state.mucServers[0];
+      }
+      $("#discover-modal").classList.remove("hidden");
+      if (input.value.trim()) send({ type: "disco_rooms", server: input.value.trim() });
+    };
     $("#discover-close").onclick = () => $("#discover-modal").classList.add("hidden");
     $("#discover-go").onclick = () => {
       const server = $("#discover-server").value.trim();

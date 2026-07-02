@@ -7,7 +7,7 @@ VENV ?= .venv
 BIN := $(VENV)/bin
 CONFIG ?= config.dev.yaml
 
-.PHONY: help venv install run test lint fmt certs ejabberd-up ejabberd-down register clean
+.PHONY: help venv install run test lint fmt certs ejabberd-up ejabberd-down register rooms clean
 
 help:
 	@echo "Targets:"
@@ -19,6 +19,7 @@ help:
 	@echo "  ejabberd-up   Start ejabberd (Docker) for development"
 	@echo "  ejabberd-down Stop ejabberd"
 	@echo "  register      Register the two sample accounts (alice, bob)"
+	@echo "  rooms         Create sample discoverable MUC rooms"
 
 venv:
 	$(PY) -m venv $(VENV)
@@ -57,6 +58,16 @@ ejabberd-down:
 register:
 	docker exec pyconduit-ejabberd ejabberdctl register alice example.com alicepass
 	docker exec pyconduit-ejabberd ejabberdctl register bob   example.com bobpass
+
+# Create a few persistent, publicly-discoverable MUC rooms so Discover has content.
+rooms:
+	@for r in general random support dev-team; do \
+	  docker exec pyconduit-ejabberd ejabberdctl create_room $$r conference.example.com example.com || true; \
+	  docker exec pyconduit-ejabberd ejabberdctl change_room_option $$r conference.example.com persistent true; \
+	  docker exec pyconduit-ejabberd ejabberdctl change_room_option $$r conference.example.com public true; \
+	done
+	@echo "Created rooms on conference.example.com:"
+	@docker exec pyconduit-ejabberd ejabberdctl muc_online_rooms conference.example.com
 
 clean:
 	rm -rf $(VENV) .pytest_cache .ruff_cache **/__pycache__

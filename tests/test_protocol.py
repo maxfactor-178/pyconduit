@@ -58,8 +58,10 @@ def test_server_error_carries_conversation():
 
 def test_server_ready_shape():
     frame = protocol.server_ready(
-        jid="alice@example.com", username="alice", brand_title="X", sound_default=True
+        jid="alice@example.com", username="alice", brand_title="X",
+        sound_default=True, muc_servers=["conference.example.com"],
     )
     assert frame["type"] == "ready"
     assert frame["jid"] == "alice@example.com"
     assert frame["sound_enabled_default"] is True
+    assert frame["muc_servers"] == ["conference.example.com"]
