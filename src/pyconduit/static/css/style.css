@@ -110,6 +110,19 @@ button { font-family: inherit; cursor: pointer; }
 .presence-dot.dnd { background: var(--red); }
 .presence-dot.offline { background: var(--grey); }
 
+/* Avatar: colored circle keyed off the JID, with a presence corner badge. */
+.avatar {
+  width: 30px; height: 30px; border-radius: 50%; flex: none; position: relative;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 600; font-size: 13px; user-select: none;
+}
+.avatar .presence-dot {
+  position: absolute; right: -3px; bottom: -3px;
+  width: 9px; height: 9px; border: 3px solid var(--bg-alt); box-sizing: content-box;
+}
+.list li:hover .avatar .presence-dot { border-color: var(--bg-hover); }
+.list li.active .avatar .presence-dot { border-color: var(--bg-active); }
+
 .badge {
   background: var(--red); color: #fff; font-size: 11px; font-weight: 700;
   border-radius: 10px; padding: 1px 7px; min-width: 18px; text-align: center;
@@ -123,11 +136,13 @@ button { font-family: inherit; cursor: pointer; }
 /* Main */
 #main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 #convo-header {
-  padding: 14px 18px;
+  padding: 12px 18px;
   border-bottom: 1px solid var(--bg-dark);
   box-shadow: 0 1px 0 rgba(0,0,0,0.2);
-  display: flex; align-items: baseline; gap: 10px;
+  display: flex; align-items: center; gap: 10px;
 }
+#convo-avatar:empty { display: none; }
+#convo-header .avatar .presence-dot { border-color: var(--bg); }
 #convo-title { font-weight: 700; }
 #convo-sub { color: var(--text-muted); font-size: 13px; }
 .header-btn {

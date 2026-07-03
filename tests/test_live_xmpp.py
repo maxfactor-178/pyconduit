@@ -113,6 +113,19 @@ async def test_muc_join_send_occupants(clients):
     assert occ and any(o["nick"] in ("alice", "bob") for o in occ[-1].occupants)
 
 
+async def test_leaving_room_does_not_leak_as_contact(clients):
+    alice, ac, _bob, _bc = clients
+    room = f"pyc-{uuid.uuid4().hex[:8]}@conference.example.com"
+    await alice.join_room(room, "alice")
+    assert await _wait_for(ac, ifc.MucJoined) is not None
+    ac.events.clear()
+    await alice.leave_room(room)
+    await asyncio.sleep(1.5)
+    # The self-unavailable sent on leave must NOT surface as a 1:1 presence update.
+    leaked = [e for e in ac.of(ifc.PresenceUpdate) if e.jid == room]
+    assert not leaked, f"room leaked as contact presence: {leaked}"
+
+
 async def test_presence_online_then_change(clients):
     alice, _ac, _bob, bc = clients
     # Bob learns Alice is online, then follows her status change.

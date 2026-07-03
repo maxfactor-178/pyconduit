@@ -201,11 +201,16 @@ class SlixmppClient(XmppClient):
         self._xmpp.send_presence(pshow=slix_show or None, pstatus=status)
 
     async def _on_presence(self, pres) -> None:
-        # Ignore our own presence and MUC room presence: occupant presences share
-        # the presence_available/unavailable events, but their bare JID is the room
-        # (handled by _on_groupchat_presence) — never a 1:1 roster contact.
+        # Ignore our own presence, and any MUC room presence. Occupant presences
+        # (join/leave, including our own unavailable when leaving a room) share the
+        # presence_available/unavailable events but carry the MUC#user namespace —
+        # the reliable discriminator. Filtering on _joined_rooms alone misses the
+        # self-unavailable sent while leaving (we've already left the dict), which
+        # would otherwise leak the room in as a phantom 1:1 contact.
         frm = JID(pres["from"])
         if frm.bare == self._bare or frm.bare in self._joined_rooms:
+            return
+        if pres.xml.find("{http://jabber.org/protocol/muc#user}x") is not None:
             return
 
         resources = self._presence_resources.setdefault(frm.bare, {})

@@ -72,17 +72,37 @@
     return r && r.show ? r.show : "offline";
   }
 
+  // Deterministic hue from a JID, so each contact/room gets a stable avatar color.
+  function hashHue(str) {
+    let h = 5381;
+    for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+    return Math.abs(h) % 360;
+  }
+
+  // A colored circle with the initial (or "#" for rooms); presence dot as a
+  // corner badge for 1:1 contacts. dotClass === null means "no presence" (a room).
+  function makeAvatar(id, label, dotClass) {
+    const av = document.createElement("span");
+    av.className = "avatar";
+    av.style.backgroundColor = `hsl(${hashHue(id)} 52% 42%)`;
+    const initial = document.createElement("span");
+    initial.textContent = dotClass === null ? "#" : (label.trim()[0] || "?").toUpperCase();
+    av.appendChild(initial);
+    if (dotClass !== null) {
+      const dot = document.createElement("span");
+      dot.className = "presence-dot " + dotClass;
+      av.appendChild(dot);
+    }
+    return av;
+  }
+
   function liFor(convoId, label, dotClass, action) {
     const c = state.convos.get(convoId);
     const li = document.createElement("li");
     if (convoId === state.active) li.classList.add("active");
     li.onclick = () => setActive(convoId);
 
-    if (dotClass !== null) {
-      const dot = document.createElement("span");
-      dot.className = "presence-dot " + dotClass;
-      li.appendChild(dot);
-    }
+    li.appendChild(makeAvatar(convoId, label, dotClass));
     const name = document.createElement("span");
     name.className = "name";
     name.textContent = label;
@@ -135,6 +155,8 @@
   function renderConvoHeader() {
     const c = state.convos.get(state.active);
     const leaveBtn = $("#leave-room-btn");
+    const avatar = $("#convo-avatar");
+    avatar.innerHTML = "";
     if (!c) {
       $("#convo-title").textContent = "Select a conversation";
       $("#convo-sub").textContent = "";
@@ -145,9 +167,11 @@
     if (c.kind === "chat") {
       const r = state.roster.get(c.id);
       $("#convo-sub").textContent = r && r.status ? r.status : presenceOf(c.id);
+      avatar.appendChild(makeAvatar(c.id, c.name, presenceOf(c.id)));
       leaveBtn.classList.add("hidden");
     } else {
       $("#convo-sub").textContent = c.occupants.length + " occupants";
+      avatar.appendChild(makeAvatar(c.id, c.name, null));
       leaveBtn.classList.remove("hidden");
     }
   }
