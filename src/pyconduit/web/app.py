@@ -16,9 +16,10 @@ from fastapi.staticfiles import StaticFiles
 
 from ..audit import AuditLog
 from ..auth import AuthMapper
-from ..config import Config, load_config
+from ..config import AuthMode, Config, load_config
 from ..session.manager import AccountManager
 from .routes import router
+from .security import SECURITY_HEADERS
 
 log = logging.getLogger("pyconduit")
 
@@ -34,6 +35,16 @@ def create_app(config: Config | None = None, config_path: str | None = None) -> 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         log.info("PyConduit starting on %s:%s", cfg.server.host, cfg.server.port)
+        if cfg.auth.mode is AuthMode.dev:
+            log.warning(
+                "AUTH MODE IS 'dev': anyone can impersonate any user via ?user=. "
+                "Use auth.mode=proxy behind an authenticating reverse proxy in production."
+            )
+        if not cfg.server.allowed_origins:
+            log.warning(
+                "server.allowed_origins is empty: WebSocket Origin is not enforced. "
+                "Set it in production to prevent cross-site WebSocket hijacking."
+            )
         yield
         await manager.shutdown()
         audit.close()
@@ -43,6 +54,15 @@ def create_app(config: Config | None = None, config_path: str | None = None) -> 
     app.state.audit = audit
     app.state.mapper = mapper
     app.state.manager = manager
+
+    if cfg.server.security_headers:
+
+        @app.middleware("http")
+        async def _security_headers(request, call_next):
+            response = await call_next(request)
+            for name, value in SECURITY_HEADERS.items():
+                response.headers.setdefault(name, value)
+            return response
 
     app.include_router(router)
     app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")

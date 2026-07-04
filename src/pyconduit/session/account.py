@@ -230,10 +230,24 @@ class Account:
             return
         await handler(sub, msg)
 
+    def _too_long(self, body: str, conversation: str) -> dict | None:
+        """Return an error frame if the body exceeds the configured limit, else None."""
+        limit = self._cfg.server.max_message_chars
+        if limit and len(body) > limit:
+            return protocol.server_error(
+                context="delivery",
+                conversation=conversation,
+                message=f"Message too long ({len(body)}/{limit} characters).",
+            )
+        return None
+
     async def _cmd_send_message(self, sub: Subscriber, msg: protocol.ClientMessage) -> None:
         msg.require("to", "body")
         to_jid = msg.data["to"]
         body = msg.data["body"]
+        if (err := self._too_long(body, to_jid)) is not None:
+            await sub.send(err)
+            return
         try:
             msg_id = await self._client.send_message(to_jid, body)
         except Exception as exc:  # noqa: BLE001
@@ -316,6 +330,9 @@ class Account:
 
     async def _cmd_send_muc(self, sub: Subscriber, msg: protocol.ClientMessage) -> None:
         msg.require("room", "body")
+        if (err := self._too_long(msg.data["body"], msg.data["room"])) is not None:
+            await sub.send(err)
+            return
         try:
             await self._client.send_muc(msg.data["room"], msg.data["body"])
         except Exception as exc:  # noqa: BLE001
@@ -343,6 +360,7 @@ class Account:
                 brand_title=self._cfg.server.brand_title,
                 sound_default=self._cfg.ui.sound_enabled_default,
                 muc_servers=self._cfg.muc.discovery_servers,
+                max_message_chars=self._cfg.server.max_message_chars,
             )
         )
         if self._roster:

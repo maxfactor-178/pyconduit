@@ -77,6 +77,7 @@ def server_ready(
     brand_title: str,
     sound_default: bool,
     muc_servers: list[str],
+    max_message_chars: int,
 ) -> dict:
     return {
         "type": "ready",
@@ -85,6 +86,7 @@ def server_ready(
         "brand_title": brand_title,
         "sound_enabled_default": sound_default,
         "muc_servers": muc_servers,
+        "max_message_chars": max_message_chars,
     }
 
 

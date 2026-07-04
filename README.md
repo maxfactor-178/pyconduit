@@ -134,12 +134,30 @@ header name, mapping files), `xmpp` (host/port/TLS, idle timeout, reconnect
 backoff), `muc` (discovery servers), `history` (page size), `ui`
 (sound default), `audit` (destinations + text/json format).
 
-### Production auth
+### Production auth & hardening
 
 Set `auth.mode: proxy`. Put PyConduit behind a reverse proxy that authenticates
 every request to `/` and `/ws` and **overwrites** the configured header
 (default `X-Remote-User`) with the verified username. `/healthz` and `/readyz`
 need no auth.
+
+Because the app trusts that header, **it must not be directly reachable** — keep it
+bound to `127.0.0.1` (the default) and expose it only through the proxy. For
+production also set:
+
+- `server.allowed_origins` — the browser Origin(s) allowed to open the WebSocket
+  (e.g. `["https://chat.example.com"]`). Prevents cross-site WebSocket hijacking.
+  Empty (dev default) disables the check and logs a warning.
+- `server.client_ip_header` — e.g. `X-Forwarded-For`, so the audit log records the
+  real client IP instead of the proxy's. Only trust it behind a proxy that sets it.
+- `server.max_message_chars` — cap on outbound message length (default 1000).
+- `server.security_headers` — CSP, `X-Frame-Options`, `nosniff` on responses (on by
+  default).
+
+The **audit log records auth/session events only** (who connected, when, from what
+IP) — never message content.
+
+See [DEVELOPERS.md](DEVELOPERS.md) for architecture and how to add features.
 
 ## Testing & linting
 

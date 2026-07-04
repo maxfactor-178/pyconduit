@@ -274,6 +274,7 @@
         state.brandTitle = f.brand_title || "PyConduit";
         state.soundEnabled = loadSoundPref(f.sound_enabled_default);
         state.mucServers = f.muc_servers || [];
+        if (f.max_message_chars) $("#composer-input").maxLength = f.max_message_chars;
         $("#sound-toggle").checked = state.soundEnabled;
         renderAll();
         break;

@@ -25,9 +25,19 @@ class _Sink:
     owns_stream: bool = False
 
 
+def _clean(value: Any) -> str:
+    """Neutralize log injection: strip CR/LF and other control chars from a field.
+
+    A username coming from ``?user=`` in dev mode is attacker-controlled; without
+    this a newline could forge additional audit lines.
+    """
+    text = str(value)
+    return "".join(" " if ord(c) < 0x20 else c for c in text)
+
+
 def _format_text(event: str, fields: dict[str, Any]) -> str:
-    ts = fields.get("ts", "")
-    rest = " ".join(f"{k}={v}" for k, v in fields.items() if k != "ts")
+    ts = _clean(fields.get("ts", ""))
+    rest = " ".join(f"{k}={_clean(v)}" for k, v in fields.items() if k != "ts")
     return f"{ts} audit {event} {rest}".rstrip()
 
 

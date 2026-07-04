@@ -109,6 +109,26 @@ async def test_sent_message_echoes_to_all_tabs():
         assert echoes[0]["conversation"] == "bob@example.com"
 
 
+async def test_message_too_long_is_rejected():
+    mgr = make_manager()
+    f1, s1 = collector()
+    sub1 = Subscriber(username="alice", ip="1.1.1.1", send=s1)
+    account = await mgr.attach(jid="alice@example.com", password="pw", sub=sub1)
+
+    long_body = "x" * (account._cfg.server.max_message_chars + 1)
+    cmd = parse_client_message(
+        {"type": "send_message", "to": "bob@example.com", "body": long_body}
+    )
+    await account.handle_command(sub1, cmd)
+
+    # Nothing was sent to XMPP, and the tab got a delivery error instead of an echo.
+    client = created["alice@example.com"]
+    assert client.sent == []
+    errors = [fr for fr in f1 if fr["type"] == "error"]
+    assert errors and "too long" in errors[0]["message"].lower()
+    assert not any(fr["type"] == "message" for fr in f1)
+
+
 async def test_incoming_message_broadcasts():
     mgr = make_manager()
     f1, s1 = collector()

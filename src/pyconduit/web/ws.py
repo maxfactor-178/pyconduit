@@ -15,6 +15,7 @@ from starlette.websockets import WebSocketState
 from .. import protocol
 from ..auth import AuthError
 from ..protocol import ProtocolError
+from .security import client_ip, origin_allowed
 
 log = logging.getLogger("pyconduit.ws")
 
@@ -26,7 +27,18 @@ async def handle_ws(websocket: WebSocket) -> None:
     audit = app.state.audit
     manager = app.state.manager
 
-    ip = websocket.client.host if websocket.client else "unknown"
+    ip = client_ip(
+        headers=dict(websocket.headers),
+        peer=websocket.client.host if websocket.client else None,
+        ip_header=cfg.server.client_ip_header,
+    )
+
+    # Reject cross-site WebSocket handshakes before accepting (anti-CSWSH).
+    origin = websocket.headers.get("origin")
+    if not origin_allowed(origin, cfg.server.allowed_origins):
+        audit.auth_denied(username=None, ip=ip, reason=f"origin not allowed: {origin!r}")
+        await websocket.close(code=1008)
+        return
 
     await websocket.accept()
 

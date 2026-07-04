@@ -56,6 +56,22 @@ class ServerConfig(BaseModel):
     port: int = 8080
     brand_title: str = "PyConduit"
 
+    # Browser Origins allowed to open the WebSocket. Empty = no Origin enforcement
+    # (fine for local dev; set this in production to prevent cross-site WS hijacking).
+    allowed_origins: list[str] = Field(default_factory=list)
+
+    # Header the trusted proxy sets with the real client IP (e.g. "X-Forwarded-For").
+    # None = use the socket peer address. Only trust this behind a proxy that sets it,
+    # since clients can otherwise spoof it — same trust model as the auth header.
+    client_ip_header: str | None = None
+
+    # Emit hardening response headers (CSP, X-Frame-Options, nosniff, …).
+    security_headers: bool = True
+
+    # Reject outbound messages longer than this many characters (0 = no limit).
+    # Caps abuse/DoS and keeps the UI tidy; enforced server-side, hinted client-side.
+    max_message_chars: int = 1000
+
 
 class AuthConfig(BaseModel):
     mode: AuthMode = AuthMode.proxy
