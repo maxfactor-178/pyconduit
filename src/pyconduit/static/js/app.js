@@ -429,10 +429,6 @@
       renderAll();
     }
   }
-  function joinRoom() {
-    const room = prompt("Room address (e.g. general@conference.example.com):");
-    if (room) send({ type: "join_room", room: room.trim() });
-  }
   function leaveRoom(room) {
     if (confirm(`Leave ${room.split("@")[0]}?`)) send({ type: "leave_room", room });
   }
@@ -507,7 +503,6 @@
     });
 
     $("#add-contact-btn").onclick = addContact;
-    $("#join-room-btn").onclick = joinRoom;
     $("#leave-room-btn").onclick = () => {
       const c = state.convos.get(state.active);
       if (c && c.kind === "muc") leaveRoom(c.id);
