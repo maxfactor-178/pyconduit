@@ -33,7 +33,7 @@ CLIENT_TYPES = frozenset(
         "add_contact",    # {jid, name?}
         "remove_contact", # {jid}
         "subscription",   # {jid, action: accept|decline}
-        "disco_rooms",    # {server}
+        "disco_servers",  # {} — browse the server-configured MUC domains (no user input)
     }
 )
 
@@ -167,8 +167,12 @@ def server_muc_presence(*, room: str, nick: str, joined: bool) -> dict:
     return {"type": "muc_presence", "room": room, "nick": nick, "joined": joined}
 
 
-def server_disco_rooms(*, server: str, rooms: list[dict]) -> dict:
-    return {"type": "disco_rooms", "server": server, "rooms": rooms}
+def server_disco_servers(*, servers: list[dict]) -> dict:
+    """Discovery results across all configured MUC domains.
+
+    ``servers`` is [{server, online, rooms: [{jid, name}]}], sorted by server name.
+    """
+    return {"type": "disco_servers", "servers": servers}
 
 
 def server_error(*, context: str, message: str, conversation: str | None = None) -> dict:

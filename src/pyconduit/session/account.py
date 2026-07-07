@@ -312,9 +312,29 @@ class Account:
             msg.data["jid"], accept=msg.data["action"] == "accept"
         )
 
+    def _room_domain_allowed(self, room: str) -> bool:
+        """Whether a room's MUC domain is on the configured allowlist.
+
+        Empty allowlist = no restriction (dev). Otherwise the room's domain must be
+        one of muc.discovery_servers — this is the real control; the UI just hides
+        the free-text entry. Prevents joining arbitrary/untrusted MUC services.
+        """
+        allowed = self._cfg.muc.discovery_servers
+        if not allowed:
+            return True
+        domain = room.split("@", 1)[-1].split("/", 1)[0].lower()
+        return domain in {s.lower() for s in allowed}
+
     async def _cmd_join_room(self, sub: Subscriber, msg: protocol.ClientMessage) -> None:
         msg.require("room")
         room = msg.data["room"]
+        if not self._room_domain_allowed(room):
+            await sub.send(
+                protocol.server_error(
+                    context="muc", message=f"Room server not allowed: {room}"
+                )
+            )
+            return
         nick = msg.data.get("nick") or self.jid.split("@", 1)[0]
         self._joined_rooms[room] = nick
         await self._client.join_room(room, nick)
@@ -343,12 +363,23 @@ class Account:
                 )
             )
 
-    async def _cmd_disco_rooms(self, sub: Subscriber, msg: protocol.ClientMessage) -> None:
-        msg.require("server")
-        result = await self._client.disco_rooms(msg.data["server"])
-        await sub.send(
-            protocol.server_disco_rooms(server=result.server, rooms=result.rooms)
+    async def _cmd_disco_servers(self, sub: Subscriber, msg: protocol.ClientMessage) -> None:
+        # Browse ONLY the operator-configured MUC domains — never a client-supplied
+        # one. Query them concurrently; a server that errors/times out is reported
+        # offline. Results are sorted by server name for a stable UI.
+        servers = self._cfg.muc.discovery_servers
+        results = await asyncio.gather(
+            *(self._client.disco_rooms(s) for s in servers), return_exceptions=True
         )
+        payload: list[dict] = []
+        for server, res in zip(servers, results, strict=True):
+            if isinstance(res, ifc.DiscoveredRooms):
+                rooms = sorted(res.rooms, key=lambda r: r["name"].lower())
+                payload.append({"server": server, "online": res.online, "rooms": rooms})
+            else:  # unexpected error -> treat as offline
+                payload.append({"server": server, "online": False, "rooms": []})
+        payload.sort(key=lambda r: r["server"].lower())
+        await sub.send(protocol.server_disco_servers(servers=payload))
 
     # --- helpers ---------------------------------------------------------------
 

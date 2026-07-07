@@ -368,8 +368,8 @@
         break;
       }
 
-      case "disco_rooms":
-        renderDiscoverResults(f.server, f.rooms);
+      case "disco_servers":
+        renderDiscoverServers(f.servers);
         break;
 
       case "error": {
@@ -438,16 +438,53 @@
   }
 
   // ---- Discover modal ------------------------------------------------------
-  function renderDiscoverResults(server, rooms) {
-    const ul = $("#discover-results");
-    ul.innerHTML = "";
-    if (!rooms.length) { ul.innerHTML = "<li>No rooms found.</li>"; return; }
-    rooms.forEach((room) => {
-      const li = document.createElement("li");
-      li.textContent = room.name + "  (" + room.jid + ")";
-      li.onclick = () => { send({ type: "join_room", room: room.jid });
-                           $("#discover-modal").classList.add("hidden"); };
-      ul.appendChild(li);
+  // Render the configured MUC servers (already sorted server-side), each with an
+  // online/offline badge and its rooms. Non-responding servers show as offline.
+  function renderDiscoverServers(servers) {
+    const root = $("#discover-results");
+    root.innerHTML = "";
+    if (!servers || !servers.length) {
+      root.innerHTML = "<div class='disco-empty'>No MUC servers configured.</div>";
+      return;
+    }
+    servers.forEach((srv) => {
+      const group = document.createElement("div");
+      group.className = "disco-server";
+
+      const head = document.createElement("div");
+      head.className = "disco-server-head";
+      const name = document.createElement("span");
+      name.textContent = srv.server;
+      const badge = document.createElement("span");
+      badge.className = "disco-badge " + (srv.online ? "online" : "offline");
+      badge.textContent = srv.online ? "online" : "offline";
+      head.append(name, badge);
+      group.appendChild(head);
+
+      if (srv.online && srv.rooms.length) {
+        const ul = document.createElement("ul");
+        ul.className = "list disco-rooms";
+        srv.rooms.forEach((room) => {
+          const li = document.createElement("li");
+          const label = document.createElement("span");
+          label.className = "name";
+          label.textContent = room.name;
+          li.appendChild(label);
+          li.title = room.jid;
+          li.onclick = () => {
+            send({ type: "join_room", room: room.jid });
+            $("#discover-modal").classList.add("hidden");
+          };
+          ul.appendChild(li);
+        });
+        group.appendChild(ul);
+      } else {
+        const empty = document.createElement("div");
+        empty.className = "disco-empty";
+        empty.textContent = srv.online ? "No rooms." : "Server did not respond.";
+        group.appendChild(empty);
+      }
+      root.appendChild(group);
     });
   }
 
@@ -476,20 +513,13 @@
       if (c && c.kind === "muc") leaveRoom(c.id);
     };
     $("#discover-btn").onclick = () => {
-      // Default the discovery domain to the configured local MUC service and
-      // browse it immediately, so rooms show up without any typing.
-      const input = $("#discover-server");
-      if (!input.value.trim() && state.mucServers.length) {
-        input.value = state.mucServers[0];
-      }
+      // Browse the operator-configured MUC servers. The domains live server-side;
+      // the client sends no server name, so users can't reach arbitrary domains.
+      $("#discover-results").innerHTML = "<div class='disco-loading'>Loading…</div>";
       $("#discover-modal").classList.remove("hidden");
-      if (input.value.trim()) send({ type: "disco_rooms", server: input.value.trim() });
+      send({ type: "disco_servers" });
     };
     $("#discover-close").onclick = () => $("#discover-modal").classList.add("hidden");
-    $("#discover-go").onclick = () => {
-      const server = $("#discover-server").value.trim();
-      if (server) send({ type: "disco_rooms", server });
-    };
 
     $("#load-older").onclick = () => {
       const c = state.convos.get(state.active);

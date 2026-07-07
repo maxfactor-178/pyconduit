@@ -29,6 +29,9 @@ xmpp:
     factor: 2.0
 
 muc:
+  # Allowlist of MUC domains. These are the ONLY servers browsed by "Discover
+  # rooms", and the only domains a user may join (enforced server-side; users
+  # cannot enter arbitrary domains). Empty = no restriction (dev only).
   discovery_servers:
     - conference.example.com
 

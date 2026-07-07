@@ -221,4 +221,21 @@ button { font-family: inherit; cursor: pointer; }
   flex: 1; background: var(--bg-dark); border: none; border-radius: 4px;
   padding: 9px 12px; color: var(--text);
 }
-#discover-results { max-height: 240px; margin-top: 12px; padding: 0; }
+#discover-results { max-height: 320px; overflow-y: auto; margin-top: 4px; }
+.disco-server { margin-bottom: 14px; }
+.disco-server-head {
+  display: flex; align-items: center; gap: 8px;
+  font-weight: 600; font-size: 13px; color: var(--text);
+  padding: 4px 2px; border-bottom: 1px solid var(--bg-dark);
+}
+.disco-server-head span:first-child { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.disco-badge {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  border-radius: 10px; padding: 1px 8px; letter-spacing: 0.02em;
+}
+.disco-badge.online { background: rgba(35,165,90,0.18); color: var(--green); }
+.disco-badge.offline { background: rgba(128,132,142,0.18); color: var(--grey); }
+.disco-rooms { max-height: none; padding: 4px 0; }
+.disco-empty, .disco-loading {
+  color: var(--text-muted); font-size: 13px; padding: 6px 2px;
+}

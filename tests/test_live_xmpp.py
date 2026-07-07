@@ -113,6 +113,16 @@ async def test_muc_join_send_occupants(clients):
     assert occ and any(o["nick"] in ("alice", "bob") for o in occ[-1].occupants)
 
 
+async def test_disco_rooms_reports_online_and_offline(clients):
+    alice, *_ = clients
+    good = await alice.disco_rooms("conference.example.com")
+    assert good.online is True
+    # A non-existent MUC domain must come back marked offline, not raise.
+    bad = await alice.disco_rooms("nope.invalid.example")
+    assert bad.online is False
+    assert bad.rooms == []
+
+
 async def test_leaving_room_does_not_leak_as_contact(clients):
     alice, ac, _bob, _bc = clients
     room = f"pyc-{uuid.uuid4().hex[:8]}@conference.example.com"

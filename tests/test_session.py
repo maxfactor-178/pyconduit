@@ -50,7 +50,12 @@ class FakeClient(XmppClient):
     async def join_room(self, room, nick): ...
     async def leave_room(self, room): ...
     async def send_muc(self, room, body): return "mid-muc"
-    async def disco_rooms(self, server): return ifc.DiscoveredRooms(server=server, rooms=[])
+
+    # Tests may set FakeClient.disco_map = {server: DiscoveredRooms} to shape results.
+    disco_map: dict = {}
+
+    async def disco_rooms(self, server):
+        return self.disco_map.get(server, ifc.DiscoveredRooms(server=server, rooms=[]))
 
 
 def make_manager():
@@ -157,6 +162,53 @@ async def test_delivery_failure_surfaces_error():
     await client.emit(ifc.DeliveryFailure(to_jid="bob@example.com", error="not found"))
     errors = [fr for fr in f1 if fr["type"] == "error"]
     assert errors and errors[0]["conversation"] == "bob@example.com"
+
+
+async def test_disco_servers_uses_only_configured_servers_sorted():
+    mgr = make_manager()
+    # Configure two MUC domains; one online with rooms, one offline.
+    mgr._cfg.muc.discovery_servers = ["z.example.com", "a.example.com"]
+    FakeClient.disco_map = {
+        "a.example.com": ifc.DiscoveredRooms(
+            server="a.example.com", rooms=[{"jid": "r@a.example.com", "name": "R"}],
+            online=True,
+        ),
+        "z.example.com": ifc.DiscoveredRooms(server="z.example.com", rooms=[], online=False),
+    }
+    try:
+        f1, s1 = collector()
+        sub1 = Subscriber(username="alice", ip="1.1.1.1", send=s1)
+        account = await mgr.attach(jid="alice@example.com", password="pw", sub=sub1)
+        await account.handle_command(sub1, parse_client_message({"type": "disco_servers"}))
+    finally:
+        FakeClient.disco_map = {}
+
+    frame = [fr for fr in f1 if fr["type"] == "disco_servers"][-1]
+    names = [s["server"] for s in frame["servers"]]
+    assert names == ["a.example.com", "z.example.com"]  # sorted by server name
+    by = {s["server"]: s for s in frame["servers"]}
+    assert by["a.example.com"]["online"] is True and by["a.example.com"]["rooms"]
+    assert by["z.example.com"]["online"] is False and by["z.example.com"]["rooms"] == []
+
+
+async def test_join_room_rejects_disallowed_domain():
+    mgr = make_manager()
+    mgr._cfg.muc.discovery_servers = ["conference.example.com"]
+    f1, s1 = collector()
+    sub1 = Subscriber(username="alice", ip="1.1.1.1", send=s1)
+    account = await mgr.attach(jid="alice@example.com", password="pw", sub=sub1)
+
+    await account.handle_command(
+        sub1, parse_client_message({"type": "join_room", "room": "x@evil.example.com"})
+    )
+    errors = [fr for fr in f1 if fr["type"] == "error"]
+    assert errors and "not allowed" in errors[0]["message"].lower()
+    # An allowed-domain room passes validation (fake join is a no-op).
+    await account.handle_command(
+        sub1,
+        parse_client_message({"type": "join_room", "room": "team@conference.example.com"}),
+    )
+    assert "team@conference.example.com" in account._joined_rooms
 
 
 async def test_idle_close_after_last_tab():

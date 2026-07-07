@@ -151,6 +151,9 @@ production also set:
 - `server.client_ip_header` — e.g. `X-Forwarded-For`, so the audit log records the
   real client IP instead of the proxy's. Only trust it behind a proxy that sets it.
 - `server.max_message_chars` — cap on outbound message length (default 1000).
+- `muc.discovery_servers` — the allowlist of MUC domains. Only these are browsed
+  by *Discover rooms*, and users may only join rooms on these domains (enforced
+  server-side — the client cannot request an arbitrary domain).
 - `server.security_headers` — CSP, `X-Frame-Options`, `nosniff` on responses (on by
   default).
 

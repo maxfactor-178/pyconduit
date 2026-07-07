@@ -115,6 +115,7 @@ class MucPresence:
 class DiscoveredRooms:
     server: str
     rooms: list[dict]  # [{jid, name}]
+    online: bool = True  # False if the server did not respond to the query
 
 
 # Any of the above dataclasses may be delivered to the event handler.

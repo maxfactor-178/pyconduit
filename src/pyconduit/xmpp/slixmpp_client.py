@@ -384,10 +384,11 @@ class SlixmppClient(XmppClient):
     async def disco_rooms(self, server: str) -> DiscoveredRooms:
         rooms: list[dict] = []
         try:
-            result = await self._xmpp["xep_0030"].get_items(jid=server)
+            result = await self._xmpp["xep_0030"].get_items(jid=server, timeout=10)
             for item in result["disco_items"]["items"]:
                 jid, _node, name = item
                 rooms.append({"jid": jid, "name": name or jid})
         except (IqError, IqTimeout):
-            pass
-        return DiscoveredRooms(server=server, rooms=rooms)
+            # Server refused or did not respond in time: report it as offline.
+            return DiscoveredRooms(server=server, rooms=[], online=False)
+        return DiscoveredRooms(server=server, rooms=rooms, online=True)
