@@ -101,6 +101,8 @@
     const li = document.createElement("li");
     if (convoId === state.active) li.classList.add("active");
     li.onclick = () => setActive(convoId);
+    // Hover shows the full JID — disambiguates same-named rooms on different servers.
+    li.title = convoId;
 
     li.appendChild(makeAvatar(convoId, label, dotClass));
     const name = document.createElement("span");
@@ -159,18 +161,21 @@
     avatar.innerHTML = "";
     if (!c) {
       $("#convo-title").textContent = "Select a conversation";
+      $("#convo-title").title = "";
       $("#convo-sub").textContent = "";
       leaveBtn.classList.add("hidden");
       return;
     }
     $("#convo-title").textContent = c.name;
+    $("#convo-title").title = c.id;   // full JID on hover (disambiguates rooms)
     if (c.kind === "chat") {
       const r = state.roster.get(c.id);
       $("#convo-sub").textContent = r && r.status ? r.status : presenceOf(c.id);
       avatar.appendChild(makeAvatar(c.id, c.name, presenceOf(c.id)));
       leaveBtn.classList.add("hidden");
     } else {
-      $("#convo-sub").textContent = c.occupants.length + " occupants";
+      // Show the MUC domain so same-named rooms on different servers are clear.
+      $("#convo-sub").textContent = c.id.split("@")[1] || "";
       avatar.appendChild(makeAvatar(c.id, c.name, null));
       leaveBtn.classList.remove("hidden");
     }
@@ -219,7 +224,29 @@
     const c = state.convos.get(state.active);
     if (!c || c.kind !== "muc") { el.classList.add("hidden"); return; }
     el.classList.remove("hidden");
-    el.textContent = "In room: " + c.occupants.map((o) => o.nick).join(", ");
+    el.innerHTML = "";
+
+    const head = document.createElement("div");
+    head.className = "occ-head";
+    head.textContent = `Members — ${c.occupants.length}`;
+    el.appendChild(head);
+
+    [...c.occupants]
+      .sort((a, b) => a.nick.localeCompare(b.nick))
+      .forEach((o) => {
+        const row = document.createElement("div");
+        row.className = "occ";
+        // Hover shows the member's real JID when the room exposes it, else the
+        // in-room address (room@server/nick).
+        row.title = o.jid || `${c.id}/${o.nick}`;
+        // Color the avatar from a stable id; show presence as the corner dot.
+        row.appendChild(makeAvatar(o.jid || `${c.id}/${o.nick}`, o.nick, o.show || "online"));
+        const name = document.createElement("span");
+        name.className = "occ-name";
+        name.textContent = o.nick;
+        row.appendChild(name);
+        el.appendChild(row);
+      });
   }
 
   function updateTitle() {

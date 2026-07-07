@@ -50,18 +50,21 @@
         <button id="leave-room-btn" class="header-btn hidden" title="Leave room">Leave</button>
       </header>
 
-      <div id="messages-wrap">
-        <button id="load-older" class="hidden">Load older messages</button>
-        <div id="messages"></div>
+      <div id="convo-body">
+        <div id="chat-col">
+          <div id="messages-wrap">
+            <button id="load-older" class="hidden">Load older messages</button>
+            <div id="messages"></div>
+          </div>
+          <form id="composer">
+            <input id="composer-input" type="text" autocomplete="off"
+                   placeholder="Type a message…" disabled />
+            <button id="send-btn" type="submit" disabled>Send</button>
+          </form>
+        </div>
+
+        <aside id="occupants" class="hidden"></aside>
       </div>
-
-      <div id="occupants" class="hidden"></div>
-
-      <form id="composer">
-        <input id="composer-input" type="text" autocomplete="off"
-               placeholder="Type a message…" disabled />
-        <button id="send-btn" type="submit" disabled>Send</button>
-      </form>
     </main>
   </div>
 

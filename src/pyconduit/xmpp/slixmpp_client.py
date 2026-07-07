@@ -374,12 +374,26 @@ class SlixmppClient(XmppClient):
         except Exception:
             roster = []
         for nick in roster:
-            try:
-                data = muc.get_jid_property(room_bare, nick, "role")
-            except Exception:
-                data = None
-            occupants.append({"nick": nick, "role": data or "participant"})
+            occupants.append(
+                {
+                    "nick": nick,
+                    "role": self._muc_prop(room_bare, nick, "role") or "participant",
+                    "show": _SHOW_MAP.get(self._muc_prop(room_bare, nick, "show") or "", "online"),
+                    # Real JID only if the room exposes it (non-anonymous / we're mod).
+                    "jid": self._muc_real_jid(room_bare, nick),
+                }
+            )
         await self._on_event(MucOccupants(room=room_bare, occupants=occupants))
+
+    def _muc_prop(self, room: str, nick: str, prop: str):
+        try:
+            return self._xmpp["xep_0045"].get_jid_property(room, nick, prop)
+        except Exception:
+            return None
+
+    def _muc_real_jid(self, room: str, nick: str) -> str:
+        jid = self._muc_prop(room, nick, "jid")
+        return JID(jid).bare if jid else ""
 
     async def disco_rooms(self, server: str) -> DiscoveredRooms:
         rooms: list[dict] = []
