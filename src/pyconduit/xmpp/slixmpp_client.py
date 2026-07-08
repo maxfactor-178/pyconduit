@@ -9,6 +9,7 @@ owns that so it can emit its own lifecycle events; slixmpp auto-reconnect is off
 from __future__ import annotations
 
 import asyncio
+import re
 import ssl
 from datetime import UTC, datetime
 
@@ -48,6 +49,17 @@ _SHOW_MAP: dict[str, Show] = {
 
 # When a contact is logged in from several devices, pick the "most available" one.
 _SHOW_PRIORITY = {"online": 0, "away": 1, "xa": 2, "dnd": 3}
+
+
+def _mentions(nick: str | None, body: str) -> bool:
+    """True if ``body`` @-mentions ``nick`` (e.g. '@alice'), case-insensitive.
+
+    Requires the literal '@' prefix and a word boundary so '@alice' matches but
+    '@alice2' or a bare 'alice' does not.
+    """
+    if not nick:
+        return False
+    return re.search(rf"@{re.escape(nick)}\b", body, re.IGNORECASE) is not None
 
 
 def _now_iso() -> str:
@@ -344,6 +356,7 @@ class SlixmppClient(XmppClient):
         body = msg["body"]
         if not body:
             return
+        is_self = nick == our_nick
         await self._on_event(
             MucMessage(
                 room=room_bare,
@@ -351,7 +364,8 @@ class SlixmppClient(XmppClient):
                 body=body,
                 msg_id=msg["id"] or self._xmpp.new_id(),
                 timestamp=_now_iso(),
-                is_self=(nick == our_nick),
+                is_self=is_self,
+                mentions_me=(not is_self) and _mentions(our_nick, body),
             )
         )
 

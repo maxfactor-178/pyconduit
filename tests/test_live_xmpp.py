@@ -113,6 +113,24 @@ async def test_muc_join_send_occupants(clients):
     assert occ and any(o["nick"] in ("alice", "bob") for o in occ[-1].occupants)
 
 
+async def test_muc_mention_flagged(clients):
+    alice, ac, bob, bc = clients
+    room = f"pyc-{uuid.uuid4().hex[:8]}@conference.example.com"
+    await alice.join_room(room, "alice")
+    await bob.join_room(room, "bob")
+    await asyncio.sleep(1.0)
+
+    tag = uuid.uuid4().hex[:5]
+    await bob.send_muc(room, f"hey @alice {tag}")
+    hit = await _wait_for(ac, ifc.MucMessage, pred=lambda e: e.body.endswith(tag))
+    assert hit is not None and hit.mentions_me is True
+
+    tag2 = uuid.uuid4().hex[:5]
+    await bob.send_muc(room, f"just talking about stuff {tag2}")
+    plain = await _wait_for(ac, ifc.MucMessage, pred=lambda e: e.body.endswith(tag2))
+    assert plain is not None and plain.mentions_me is False
+
+
 async def test_disco_rooms_reports_online_and_offline(clients):
     alice, *_ = clients
     good = await alice.disco_rooms("conference.example.com")

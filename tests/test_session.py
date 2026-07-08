@@ -134,6 +134,34 @@ async def test_message_too_long_is_rejected():
     assert not any(fr["type"] == "message" for fr in f1)
 
 
+def test_mentions_detection():
+    from pyconduit.xmpp.slixmpp_client import _mentions
+
+    assert _mentions("alice", "hey @alice look here") is True
+    assert _mentions("Alice", "ping @alice") is True          # case-insensitive
+    assert _mentions("alice", "@alice: hi") is True
+    assert _mentions("alice", "talk to alice") is False       # no @ prefix
+    assert _mentions("alice", "@alice2 is someone else") is False  # word boundary
+    assert _mentions(None, "@alice") is False                 # no nick
+
+
+async def test_muc_mention_flag_broadcasts():
+    mgr = make_manager()
+    f1, s1 = collector()
+    sub1 = Subscriber(username="alice", ip="1.1.1.1", send=s1)
+    await mgr.attach(jid="alice@example.com", password="pw", sub=sub1)
+
+    client = created["alice@example.com"]
+    await client.emit(
+        ifc.MucMessage(
+            room="r@conference.example.com", nick="bob", body="@alice hi",
+            msg_id="1", timestamp="t", is_self=False, mentions_me=True,
+        )
+    )
+    frames = [fr for fr in f1 if fr["type"] == "muc_message"]
+    assert frames and frames[-1]["mentions_me"] is True
+
+
 async def test_incoming_message_broadcasts():
     mgr = make_manager()
     f1, s1 = collector()

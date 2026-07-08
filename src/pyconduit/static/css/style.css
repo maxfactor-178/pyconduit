@@ -169,6 +169,14 @@ button { font-family: inherit; cursor: pointer; }
 .msg.outgoing .author { color: var(--accent); }
 .msg .body { white-space: pre-wrap; word-wrap: break-word; }
 
+/* A message that @-mentions us: tinted background + accent bar, bolder text. */
+.msg.mention {
+  background: rgba(240, 178, 50, 0.10);
+  border-left: 3px solid var(--yellow);
+  padding: 3px 8px 3px 10px; margin: 0 -8px; border-radius: 2px;
+}
+.msg.mention .body { font-weight: 600; color: #fff; }
+
 .notice { text-align: center; color: var(--text-muted); font-size: 12px; padding: 4px; }
 .warning {
   background: var(--danger-bg); color: #f5c2c2; border-radius: 4px;

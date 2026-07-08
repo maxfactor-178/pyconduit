@@ -203,6 +203,7 @@ class Account:
                     msg_id=event.msg_id,
                     timestamp=event.timestamp,
                     is_self=event.is_self,
+                    mentions_me=event.mentions_me,
                 )
             )
 

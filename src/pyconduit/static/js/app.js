@@ -205,6 +205,7 @@
     }
     const div = document.createElement("div");
     div.className = "msg " + (m.direction === "outgoing" || m.is_self ? "outgoing" : "incoming");
+    if (m.mention) div.classList.add("mention");   // someone @-mentioned us
     const time = new Date(m.timestamp || Date.now());
     const author = document.createElement("span");
     author.className = "author";
@@ -263,13 +264,11 @@
   }
 
   // ---- Incoming message handling ------------------------------------------
-  function bump(convoId) {
+  function bump(convoId, mention) {
     const c = state.convos.get(convoId);
-    if (!c) return;
-    const focused = convoId === state.active && !document.hidden;
-    if (!focused) {
+    if (c && !(convoId === state.active && !document.hidden)) {
       c.unread += 1;                                // count each message once
-      if (state.soundEnabled) Sound.blip();
+      if (state.soundEnabled) (mention ? Sound.mention() : Sound.blip());
     }
   }
 
@@ -372,9 +371,10 @@
       case "muc_message": {
         const c = getConvo(f.room, "muc");
         c.messages.push({
-          author: f.nick, body: f.body, timestamp: f.timestamp, is_self: f.is_self, id: f.id,
+          author: f.nick, body: f.body, timestamp: f.timestamp,
+          is_self: f.is_self, id: f.id, mention: f.mentions_me,
         });
-        if (!f.is_self) bump(f.room);
+        if (!f.is_self) bump(f.room, f.mentions_me);
         if (f.room === state.active) { renderMessages(); scrollMessages(); }
         renderRooms(); updateTitle();
         break;

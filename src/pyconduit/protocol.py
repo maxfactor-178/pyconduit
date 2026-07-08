@@ -145,7 +145,14 @@ def server_muc_left(*, room: str) -> dict:
 
 
 def server_muc_message(
-    *, room: str, nick: str, body: str, msg_id: str, timestamp: str, is_self: bool
+    *,
+    room: str,
+    nick: str,
+    body: str,
+    msg_id: str,
+    timestamp: str,
+    is_self: bool,
+    mentions_me: bool,
 ) -> dict:
     return {
         "type": "muc_message",
@@ -155,6 +162,7 @@ def server_muc_message(
         "id": msg_id,
         "timestamp": timestamp,
         "is_self": is_self,
+        "mentions_me": mentions_me,
     }
 
 

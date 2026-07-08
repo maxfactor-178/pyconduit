@@ -96,6 +96,7 @@ class MucMessage:
     msg_id: str
     timestamp: str
     is_self: bool
+    mentions_me: bool = False  # body contains @<our room nick>
 
 
 @dataclass
